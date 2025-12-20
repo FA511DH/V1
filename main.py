@@ -18,7 +18,7 @@ from PIL import Image
 import pillow_avif  # لدعم صيغة AVIF
 
 # --- إعدادات GitHub و RSS ---
-GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
+GG_TOKEN = os.environ.get("GG_TOKEN")
 GITHUB_REPO = os.environ.get("GITHUB_REPOSITORY")
 
 RSS_FEEDS = [
@@ -66,7 +66,7 @@ def upload_image_to_github(image_content, title):
         url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{file_path}"
         encoded_content = base64.b64encode(processed_content).decode('utf-8')
         
-        headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+        headers = {"Authorization": f"token {GG_TOKEN}"}
         data = {
             "message": f"Upload image for: {title}",
             "content": encoded_content,
