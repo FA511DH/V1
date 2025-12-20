@@ -1,11 +1,16 @@
 name: Auto Gaming Blogger
 
 on:
-  push:
   schedule:
-    # الأوقات: 8 ص، 11 ص، 2 ظهراً، 5 عصراً، 8 مساءً
-    - cron: '0 8,11,14,17,20 * * *'
-  workflow_dispatch:
+    # التوقيت العالمي (UTC) يقل عن السعودية بـ 3 ساعات
+    # 7 UTC = 10 صباحاً بتوقيت السعودية
+    # 11 UTC = 2 ظهراً بتوقيت السعودية
+    # 15 UTC = 6 مساءً بتوقيت السعودية
+    # 19 UTC = 10 مساءً بتوقيت السعودية
+    # 22 UTC = 1 صباحاً بتوقيت السعودية
+    - cron: '0 7,11,15,19,22 * * *'
+    
+  workflow_dispatch: # يتيح لك التشغيل اليدوي في أي وقت
 
 jobs:
   build:
@@ -25,7 +30,6 @@ jobs:
       
     - name: Run Bot
       env:
-        # هنا كان النقص.. يجب إضافة الأسطر التالية:
         BLOGGER_TOKEN_JSON: ${{ secrets.BLOGGER_TOKEN_JSON }}
         GG_TOKEN: ${{ secrets.GG_TOKEN }}
         RSS_FEEDS: ${{ secrets.RSS_FEEDS }}
