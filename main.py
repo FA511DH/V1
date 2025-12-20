@@ -21,12 +21,11 @@ import pillow_avif  # لدعم صيغة AVIF
 GG_TOKEN = os.environ.get("GG_TOKEN")
 GITHUB_REPO = os.environ.get("GITHUB_REPOSITORY")
 
-# قراءة المصادر من Secrets (تكون مخفية تماماً)
+# قراءة المصادر من Secrets
 raw_feeds = os.environ.get("RSS_FEEDS", "")
 if raw_feeds:
     RSS_FEEDS = [f.strip() for f in raw_feeds.split(",") if f.strip()]
 else:
-    # قائمة احتياطية في حال لم يتم ضبط السر (يفضل تركها فارغة للأمان)
     RSS_FEEDS = []
 
 def clean_json_response(response_text):
@@ -44,9 +43,8 @@ def similar(a, b):
     return SequenceMatcher(None, a, b).ratio()
 
 def upload_image_to_github(image_content, title):
-    """رفع الصورة إلى GitHub بدلاً من Base64 لضمان الأرشفة ومنع مشاكل العرض"""
+    """رفع الصورة إلى GitHub بصيغة AVIF"""
     try:
-        # تعديل استخدام GG_TOKEN هنا أيضاً
         if not GG_TOKEN or not GITHUB_REPO:
             return None
             
@@ -88,7 +86,6 @@ def get_trending_topic(service, blog_id):
         existing_titles = [p['title'].lower() for p in posts.get('items', [])]
     except: existing_titles = []
 
-    # خلط المصادر السرية
     random.shuffle(RSS_FEEDS)
     for feed_url in RSS_FEEDS:
         try:
@@ -133,6 +130,7 @@ def generate_pro_article(topic, news_url):
 
     today_date = datetime.now().strftime("%Y-%m-%d")
 
+    # --- التعديل هنا: أمر صارم بخصوص العنوان ---
     prompt = f"""
     Act as a professional Gaming Editor for 'Pro Gamer AR'.
     Task: Write a RICH, ENGAGING Arabic article (approx 350-400 words) about: "{topic}".
@@ -147,16 +145,21 @@ def generate_pro_article(topic, news_url):
     3. **Pro Gamer Advice**: A dedicated section titled "نصيحة للاعبين".
     4. **Conclusion**: Summary.
 
+    **TITLE RULES (STRICT):**
+    - Do NOT translate the source title literally.
+    - Create a NEW, catchy Arabic title that is different from the source.
+    - Be HONEST. Do not use clickbait or exaggerations. Reflect the actual news accurately.
+
     **LABELS (TAGS) INSTRUCTIONS**:
     - Do NOT use generic tags like "News" or "Games".
     - EXTRACT the **Exact Game Name** (e.g., "Grand Theft Auto VI" or "GTA 6").
     - EXTRACT the **Platform** mentioned (e.g., "PlayStation 5", "PC", "Xbox").
     - EXTRACT the **Genre** (e.g., "Action", "RPG").
-    - Use English for Game Names (it's better for SEO).
+    - Use English for Game Names.
     
     Output JSON ONLY:
     {{
-        "title": "Professional Arabic Title",
+        "title": "Creative & Honest Arabic Title",
         "content": "HTML Body (p, h2, ul, li)",
         "labels": ["Game Name", "Platform", "Genre"],
         "image_description": "Cinematic shot of [Character/Scene], 8k, detailed, no text"
