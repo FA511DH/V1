@@ -17,17 +17,17 @@ from difflib import SequenceMatcher
 from PIL import Image
 import pillow_avif  # لدعم صيغة AVIF
 
-# --- إعدادات GitHub و RSS ---
+# --- إعدادات GitHub والمصادر السرية ---
 GG_TOKEN = os.environ.get("GG_TOKEN")
 GITHUB_REPO = os.environ.get("GITHUB_REPOSITORY")
 
-RSS_FEEDS = [
-    "https://www.saudigamer.com/feed/",
-    "https://www.true-gaming.net/home/feed/",
-    "https://www.ign.com/rss/articles/feed",
-    "https://www.gamespot.com/feeds/news/",
-    "https://news.google.com/rss/search?q=video+games+news&hl=en-US&gl=US&ceid=US:en"
-]
+# قراءة المصادر من Secrets (تكون مخفية تماماً)
+raw_feeds = os.environ.get("RSS_FEEDS", "")
+if raw_feeds:
+    RSS_FEEDS = [f.strip() for f in raw_feeds.split(",") if f.strip()]
+else:
+    # قائمة احتياطية في حال لم يتم ضبط السر (يفضل تركها فارغة للأمان)
+    RSS_FEEDS = []
 
 def clean_json_response(response_text):
     """تنظيف الرد لاستخراج JSON فقط"""
@@ -46,10 +46,10 @@ def similar(a, b):
 def upload_image_to_github(image_content, title):
     """رفع الصورة إلى GitHub بدلاً من Base64 لضمان الأرشفة ومنع مشاكل العرض"""
     try:
-        if not GITHUB_TOKEN or not GITHUB_REPO:
+        # تعديل استخدام GG_TOKEN هنا أيضاً
+        if not GG_TOKEN or not GITHUB_REPO:
             return None
             
-        # معالجة الصورة بنفس الطريقة (AVIF)
         img = Image.open(io.BytesIO(image_content))
         if img.mode in ("RGBA", "P"):
             img = img.convert("RGB")
@@ -58,11 +58,9 @@ def upload_image_to_github(image_content, title):
         img.save(output, format="AVIF", quality=50)
         processed_content = output.getvalue()
         
-        # إنشاء اسم ملف نظيف للسيو
         clean_name = re.sub(r'[^\w\s-]', '', title).strip().lower().replace(' ', '-')
         file_path = f"images/{clean_name}-{random.randint(10,99)}.avif"
         
-        # الرفع عبر API
         url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{file_path}"
         encoded_content = base64.b64encode(processed_content).decode('utf-8')
         
@@ -75,7 +73,6 @@ def upload_image_to_github(image_content, title):
         
         res = requests.put(url, headers=headers, json=data)
         if res.status_code in [200, 201]:
-            # إرجاع رابط RAW المباشر (صديق السيو)
             return f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/{file_path}"
     except Exception as e:
         print(f"❌ Upload Error: {e}")
@@ -83,11 +80,15 @@ def upload_image_to_github(image_content, title):
 
 def get_trending_topic(service, blog_id):
     print("1. 🕵️‍♀️ Hunting for Fresh News (Smart Mode)...")
+    if not RSS_FEEDS:
+        raise Exception("RSS_FEEDS secret is empty. Please add your sources.")
+        
     try:
         posts = service.posts().list(blogId=blog_id, maxResults=40).execute()
         existing_titles = [p['title'].lower() for p in posts.get('items', [])]
     except: existing_titles = []
 
+    # خلط المصادر السرية
     random.shuffle(RSS_FEEDS)
     for feed_url in RSS_FEEDS:
         try:
@@ -188,12 +189,10 @@ def post_to_blogger():
     seed = random.randint(1, 9999)
     pollinations_url = f"https://pollinations.ai/p/{encoded_prompt}?width=1280&height=720&model=flux&seed={seed}&nologo=true"
     
-    # محاولة توليد ورفع الصورة لـ GitHub
     final_img_url = pollinations_url
     try:
         res = requests.get(pollinations_url, timeout=45)
         if res.status_code == 200:
-            # هنا يتم الرفع بدلاً من التحويل لـ Base64
             github_url = upload_image_to_github(res.content, article['title'])
             if github_url: final_img_url = github_url
     except: pass
